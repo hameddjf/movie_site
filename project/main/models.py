@@ -7,6 +7,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericRelation
 
 import datetime
+from polymorphic.models import PolymorphicModel
 
 from comment.models import Comment
 from star_ratings.models import Rating
@@ -31,71 +32,41 @@ class Genre(models.Model):
     def __str__(self):
         return self.name
 
-class Actor(models.Model):
-    name             = models.CharField(_("نام بازیگر"), max_length=500, unique=True)
-    poster           = models.ImageField(_("عکس بازیگر"), upload_to='movie_posters/Actor', blank=True, null=True)
-    
-    
-    class Meta:
-        verbose_name = _("بازیگر")
-        verbose_name_plural = _("بازیگران")
-        
-    def __str__(self):
-        return self.name
 
-class Director(models.Model):
-    full_name        = models.CharField(_("نام کارگردان"), max_length=500, unique=True)
-    
-    class Meta:
-        verbose_name = _("کارگردان")
-        verbose_name_plural = _("کارگردان ها")
-        
-    def __str__(self):
-        return self.full_name
 
 
 class IpAddress(models.Model):
     ip_address       = models.GenericIPAddressField(_("آدرس آیپی"), protocol="both", unpack_ipv4=False)
 
 
-class Movie(models.Model):
-    title            = models.CharField(_("عنوان"), max_length=300, unique=True)
-    slug             = models.SlugField(max_length=500, unique=True,
-                             verbose_name="آدرس فیلم", blank=True, null=True)
-
-    release_date     = models.DateField(_("تاریخ اکران فیلم"), default=datetime.date.today)
-    created_at       = models.DateTimeField(_("ایجاد شده در"), auto_now_add=True)
-    updated_at       = models.DateTimeField(_("بروزرسانی شده در"), auto_now=True)
-
-    director         = models.ForeignKey(Director, on_delete=models.CASCADE,
-                        verbose_name=_("کارگردان") , related_name='movies_directed', null=True, blank=True  )
-
-    actor            = models.ManyToManyField(Actor,verbose_name=_("بازیگران"),
-                        related_name='movies_actor', blank=True )
-
-    description      = models.TextField(_("توضیحات"), blank=True)
-
-    imdb_id          = models.CharField(max_length=9, blank=True, null=True, unique=True, verbose_name='IMDb ID')
-    imdb_rating      = models.DecimalField(max_digits=3, decimal_places=1, blank=True, null=True, verbose_name='IMDb Rating')
-
-    genres           = models.ManyToManyField(Genre, verbose_name=_("ژانر"))
-    # rating           = models.FloatField(_("امتیاز"), blank=True, null=True)
-    duration         = models.PositiveIntegerField(_("مدت زمان"), help_text=_("مدت زمان فیلم به دقیقه") , null=True, blank=True)
+class Movie(PolymorphicModel):
+    # فیلدهای مشترک بین فیلم‌های تک قسمتی و سریال‌های چند قسمتی
+    title = models.CharField(_("عنوان"), max_length=300, unique=True)
+    slug = models.SlugField(max_length=500, unique=True,
+                            verbose_name="آدرس فیلم", blank=True, null=True)
+    status = models.BooleanField(_('تاییدیه انتشار'),)
+    category = models.ForeignKey('category.category', verbose_name=_("دسته بندی"), blank=False, on_delete=models.CASCADE)
+    release_date = models.DateField(_("تاریخ اکران فیلم"), auto_now_add=True)
+    created_at = models.DateTimeField(_("ایجاد شده در"), auto_now_add=True)
+    updated_at = models.DateTimeField(_("بروزرسانی شده در"), auto_now=True)
+    director = models.ManyToManyField("cast.director", verbose_name=_("کارگردان"), blank=True)
+    actor = models.ManyToManyField("cast.actor", verbose_name=_("بازیگران"), related_name='movies_actor', blank=True)
+    description = models.TextField(_("توضیحات"), blank=True)
+    imdb_id = models.CharField(max_length=9, blank=True, null=True, unique=True, verbose_name='IMDb ID')
+    imdb_rating = models.DecimalField(max_digits=3, decimal_places=1, blank=True, null=True, verbose_name='IMDb Rating')
+    genres = models.ManyToManyField(Genre, verbose_name=_("ژانر"))
+    duration = models.PositiveIntegerField(_("مدت زمان"), help_text=_("مدت زمان فیلم به دقیقه"), null=True, blank=True)
+    poster = models.URLField(_("پوستر"), max_length=500, blank=True, null=True)
+    views = models.PositiveIntegerField(default=0)
+    comments = GenericRelation(Comment)
+    rating = GenericRelation(Rating)
     
-    # poster           = models.ImageField(_("پوستر"), upload_to='movie_posters/', blank=True, null=True)
-    poster           = models.URLField(_("پوستر"), max_length=500, blank=True, null=True)
+    objects = MovieManager()  # اطمینان حاصل کنید که MovieManager را تعریف کرده‌اید
 
-    views            = models.PositiveIntegerField(default=0)
-
-    
-    objects          = MovieManager()
-    comments         = GenericRelation(Comment)
-    # rating             = models.ManyToManyField(IpAddress , blank=True , related_name='hits' , verbose_name='بازدیدها') # برای ایجاد رابطه چند به چند بین کاربران یا همون ایپی ها با مقالات
-    rating           =  GenericRelation(Rating)
     class Meta:
         verbose_name = _("فیلم")
         verbose_name_plural = _("فیلم‌ها")
-    
+
     def save(self, *args, **kwargs):
         if not self.slug:
             self.slug = slugify(self.title)
@@ -104,27 +75,50 @@ class Movie(models.Model):
     def __str__(self):
         return self.title
 
-
-
-class Episode(models.Model):
-    movie = models.ForeignKey(
-        Movie,  # فرض بر این است که کلاس Movie قبلا تعریف شده است
-        related_name='episodes',
-        on_delete=models.CASCADE,
-        verbose_name=_("سریال")
+class SingleMovie(Movie):
+    release_country = models.CharField(
+        _("کشور اکران"),
+        max_length=50,
+        blank=True,
+        null=True
     )
-    season = models.PositiveIntegerField(_("فصل"), default=1)
-    title = models.CharField(_("عنوان قسمت"), max_length=500)
-    quality = models.CharField(_("کیفیت"), max_length=300, default='HD')
-    file = models.FileField(_("فایل"), upload_to='movies/', max_length=255)
+    language = models.CharField(
+        _("زبان فیلم"),
+        max_length=50,
+        blank=True,
+        null=True
+    )
+    class Meta:
+        verbose_name = _("فیلم سینمایی")
+        verbose_name_plural = _("فیلم سینمایی")
+class Series(Movie):
+    number_of_seasons = models.PositiveIntegerField(
+        _("تعداد فصل‌ها"),
+        default=1
+    )
+    average_episode_duration = models.PositiveIntegerField(
+        _("میانگین مدت زمان قسمت‌ها"),
+        help_text=_("میانگین مدت زمان هر قسمت به دقیقه"),
+        null=True,
+        blank=True
+    )
+    class Meta:
+        verbose_name = _("سریال")
+        verbose_name_plural = _("سریال‌ها")
+
+
+class MovieNote(models.Model):
+    movie = models.ForeignKey(Movie, on_delete=models.CASCADE, related_name='notes', verbose_name=_("فیلم"))
+    note = models.TextField(_("نکته"), blank=True)
+    created_at = models.DateTimeField(_("ایجاد شده در"), auto_now_add=True)
+    updated_at = models.DateTimeField(_("بروزرسانی شده در"), auto_now=True)
 
     class Meta:
-        verbose_name = _("قسمت")
-        verbose_name_plural = _("قسمت ها")
+        verbose_name = _("نکته فیلم")
+        verbose_name_plural = _("نکات فیلم‌ها")
 
     def __str__(self):
-        return f"فصل {self.season} - {self.movie.title} - {self.title} - {self.quality}"
-
+        return f'نکته برای {self.movie.title}: {self.note[:50]}...'
 
 class Review(models.Model):
     movie            = models.ForeignKey(Movie, on_delete=models.CASCADE, verbose_name=_("فیلم"), related_name="reviews")

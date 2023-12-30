@@ -47,6 +47,10 @@ INSTALLED_APPS = [
     'django_gravatar', 
     'main',
     'star_ratings',
+
+    'cast',
+    'category',
+    'episode',
 ]
 
 MIDDLEWARE = [

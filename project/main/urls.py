@@ -8,4 +8,6 @@ urlpatterns = [
     path('calculate-rating/', AverageRatingView.as_view(), name='calculate-rating'),
 
     path('movies/<str:imdb_id>/', MovieDetailView.as_view(), name='movie-detail'),
+
+    path('series/<slug:slug>/', views.SeriesDetailView.as_view(), name='series-detail'),
 ] 

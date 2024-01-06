@@ -1,12 +1,13 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django.utils.text import slugify
-from polymorphic.models import PolymorphicRelation
+
+from main.models import Movie
 # Create your models here.
 
 class Episode(models.Model):
-    movie = PolymorphicRelation(
-        'Movie',  # استفاده از نام کلاس به صورت رشته‌ای برای جلوگیری از خطاهای مرجع قبل از تعریف کلاس
+    movie = models.ForeignKey(
+        Movie,# استفاده از نام کلاس به صورت رشته‌ای برای جلوگیری از خطاهای مرجع قبل از تعریف کلاس
         related_name='episodes',
         on_delete=models.CASCADE,
         verbose_name=_("فیلم و سریال")

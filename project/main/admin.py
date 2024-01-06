@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.utils.html import format_html
+from django.utils.translation import gettext_lazy as _
 
 from .models import Genre, Movie, Review  , IpAddress , MovieNote
 
@@ -48,7 +49,7 @@ class MovieAdmin(admin.ModelAdmin):
         }),
     )
     readonly_fields = ('created_at', 'updated_at')
-    filter_horizontal = ('actor', 'genres', 'director')  # اضافه کردن 'director' به 'filter_horizontal'
+    filter_horizontal = ('actor', 'genres')  # اضافه کردن 'director' به 'filter_horizontal'
 
     def director_str(self, obj):
         return ", ".join([director.name for director in obj.director.all()])
@@ -76,11 +77,11 @@ class MovieAdmin(admin.ModelAdmin):
             # مخفی کردن فیلدهای دیگری که برای غیر سوپریوزرها نباید قابل دسترس باشند
         return form
 
-@admin.register(Episode)
-class EpisodeAdmin(admin.ModelAdmin):
-    list_display = ('title', 'movie', 'file')
-    list_filter = ('movie',)
-    search_fields = ('title', 'movie__title')
-    ordering = ('movie', 'title')
+# @admin.register(Episode)
+# class EpisodeAdmin(admin.ModelAdmin):
+#     list_display = ('title', 'movie', 'file')
+#     list_filter = ('movie',)
+#     search_fields = ('title', 'movie__title')
+#     ordering = ('movie', 'title')
 
 admin.site.register(IpAddress)

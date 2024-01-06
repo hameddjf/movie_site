@@ -7,7 +7,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericRelation
 
 import datetime
-from polymorphic.models import PolymorphicModel
+from polymorphic.models import PolymorphicModel, PolymorphicManager
 
 from comment.models import Comment
 from star_ratings.models import Rating
@@ -38,19 +38,21 @@ class Genre(models.Model):
 class IpAddress(models.Model):
     ip_address       = models.GenericIPAddressField(_("آدرس آیپی"), protocol="both", unpack_ipv4=False)
 
-
+class MovieManager(PolymorphicManager):
+    pass
 class Movie(PolymorphicModel):
+    objects = MovieManager()  # اطمینان حاصل کنید که MovieManager را تعریف کرده‌اید
     # فیلدهای مشترک بین فیلم‌های تک قسمتی و سریال‌های چند قسمتی
     title = models.CharField(_("عنوان"), max_length=300, unique=True)
     slug = models.SlugField(max_length=500, unique=True,
                             verbose_name="آدرس فیلم", blank=True, null=True)
-    status = models.BooleanField(_('تاییدیه انتشار'),)
-    category = models.ForeignKey('category.category', verbose_name=_("دسته بندی"), blank=False, on_delete=models.CASCADE)
-    release_date = models.DateField(_("تاریخ اکران فیلم"), auto_now_add=True)
+    status = models.BooleanField(_('تاییدیه انتشار'),default=False)
+    category = models.ForeignKey('category.Category', verbose_name=_("دسته بندی"), blank=False, null=True, on_delete=models.CASCADE)
+    release_date = models.DateField(_("تاریخ اکران فیلم"), )
     created_at = models.DateTimeField(_("ایجاد شده در"), auto_now_add=True)
     updated_at = models.DateTimeField(_("بروزرسانی شده در"), auto_now=True)
-    director = models.ManyToManyField("cast.director", verbose_name=_("کارگردان"), blank=True)
-    actor = models.ManyToManyField("cast.actor", verbose_name=_("بازیگران"), related_name='movies_actor', blank=True)
+    director = models.ForeignKey("cast.Director", verbose_name=_("کارگردان"), blank=False, on_delete=models.CASCADE , default=1)
+    actor = models.ManyToManyField("cast.Actor", verbose_name=_("بازیگران"), related_name='movies_actor', blank=True)
     description = models.TextField(_("توضیحات"), blank=True)
     imdb_id = models.CharField(max_length=9, blank=True, null=True, unique=True, verbose_name='IMDb ID')
     imdb_rating = models.DecimalField(max_digits=3, decimal_places=1, blank=True, null=True, verbose_name='IMDb Rating')
@@ -61,7 +63,6 @@ class Movie(PolymorphicModel):
     comments = GenericRelation(Comment)
     rating = GenericRelation(Rating)
     
-    objects = MovieManager()  # اطمینان حاصل کنید که MovieManager را تعریف کرده‌اید
 
     class Meta:
         verbose_name = _("فیلم")

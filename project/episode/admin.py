@@ -2,7 +2,8 @@ from django.contrib import admin
 from django.urls import reverse
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
-from .models import Episode, EpisodeQuality, Movie, Series  # فرض می‌کنیم که مدل‌های Episode و EpisodeQuality در همین فایل هستند
+
+from .models import Episode, EpisodeQuality  # فرض می‌کنیم که مدل‌های Episode و EpisodeQuality در همین فایل هستند
 
 @admin.register(Episode)
 class EpisodeAdmin(admin.ModelAdmin):

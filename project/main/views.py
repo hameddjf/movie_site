@@ -10,8 +10,10 @@ import requests
 
 from datetime import datetime , timedelta
 
-from .models import Movie, Review, Genre, Actor , Episode
+from .models import Movie, Review, Genre
 from .utils import save_movie_details  # اطمینان حاصل کنید که مسیر صحیح است
+from episode.models import Episode
+from cast.models import Actor , Director
 
 def save_movie_view(request, movie_title):
     save_movie_details(movie_title)
@@ -122,7 +124,6 @@ class MovieListView(ListView):
         # sorted_movies_with_data = [(movie, data) for rating, movie, data in top_rated_movies_data]
         # # اضافه کردن به context برای استفاده در template
         # context['top_rated_movies_data'] = sorted_movies_with_data
-        # اضافه کردن داده‌های IMDB به فیلم‌های برتر
         top_rated_movies = self.get_queryset().order_by('-average_rating')[:10]
         top_rated_movies_data = [
             (movie, get_movie_data(movie.imdb_id)) for movie in top_rated_movies if movie.imdb_id
@@ -130,21 +131,21 @@ class MovieListView(ListView):
         context['top_rated_movies_data'] = top_rated_movies_data
 
         # اضافه کردن اطلاعات URL برای هر فیلم یا سریال
-        for movie in context['movies']:
-            if isinstance(movie, SingleMovie):  # توجه: این فرض بر این است که SingleMovie یک زیرکلاس از Movie است
-                movie.url = self.get_movie_url(movie)
-            elif isinstance(movie, Series):  # توجه: این فرض بر این است که Series یک زیرکلاس از Movie است
-                movie.url = self.get_series_url(movie)
+        # for movie in context['movies']:
+        #     if isinstance(movie, SingleMovie):  # توجه: این فرض بر این است که SingleMovie یک زیرکلاس از Movie است
+        #         movie.url = self.get_movie_url(movie)
+        #     elif isinstance(movie, Series):  # توجه: این فرض بر این است که Series یک زیرکلاس از Movie است
+        #         movie.url = self.get_series_url(movie)
 
         return context
 
-    def get_movie_url(self, movie):
-        # تابعی برای دریافت URL مخصوص فیلم‌های تک قسمتی
-        return movie.get_absolute_url()  # فرض بر این است که این متد در مدل Movie یا SingleMovie تعریف شده است
+    # def get_movie_url(self, movie):
+    #     # تابعی برای دریافت URL مخصوص فیلم‌های تک قسمتی
+    #     return movie.get_absolute_url()  # فرض بر این است که این متد در مدل Movie یا SingleMovie تعریف شده است
 
-    def get_series_url(self, series):
-        # تابعی برای دریافت URL مخصوص سریال‌ها
-        return series.get_absolute_url()  # فرض بر این است که این متد در مدل Series تعریف شده است
+    # def get_series_url(self, series):
+    #     # تابعی برای دریافت URL مخصوص سریال‌ها
+    #     return series.get_absolute_url()  # فرض بر این است که این متد در مدل Series تعریف شده است
 
 # نمایش جزئیات یک فیلم:
 

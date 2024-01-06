@@ -9,5 +9,5 @@ urlpatterns = [
 
     path('movies/<str:imdb_id>/', MovieDetailView.as_view(), name='movie-detail'),
 
-    path('series/<slug:slug>/', views.SeriesDetailView.as_view(), name='series-detail'),
+    path('series/<slug:slug>/', MovieDetailView.as_view(), name='series-detail'),
 ] 
